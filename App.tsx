@@ -8,13 +8,14 @@
  * @format
  */
 
-import React, {useEffect} from 'react';
-import Geolocation from 'react-native-geolocation-service';
+import React, {useEffect, useState} from 'react';
+import Geolocation, { GeoPosition } from 'react-native-geolocation-service';
 import {
   Alert,
   Linking,
   PermissionsAndroid,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -61,8 +62,8 @@ const hasLocationPermissionsIOS = async (): Promise<boolean> => {
 
 const hasLocationPermissions = async () => {
   if (Platform.OS === 'ios') {
-    const hasPermissions = await hasLocationPermissionsIOS();
-    return hasPermissions;
+    const hasPermission = await hasLocationPermissionsIOS();
+    return hasPermission;
   }
 
   // We assume that location permission is already granted by user under 23 level for android
@@ -98,55 +99,35 @@ const hasLocationPermissions = async () => {
   return false;
 };
 
-const Section: React.FC<{
-  title: string;
-}> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  useEffect(async () => {
-    console.log('shit');
-    const granted = await Geolocation.requestAuthorization('always');
-    if (granted) {
-      Geolocation.getCurrentPosition(
-        position => {
-          console.log(position);
-        },
-        error => {
-          // See error code charts below.
-          console.log(error.code, error.message);
-        },
-      );
-    }
-  });
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+const getLocation = async (
+  setLocation: (location: GeoPosition) => void,
+) => {
+  const hasPermission = await hasLocationPermissions();
+  if (!hasPermission) {
+    return;
+  }
 
-const App = () => {
+  Geolocation.getCurrentPosition(
+    (position) => {
+      setLocation(position);
+    },
+    (error) => {
+      Alert.alert(`Code ${error.code}`, error.message);
+      console.log(error);
+    }
+  );
+
+}
+
+const App = async () => {
   const isDarkMode = useColorScheme() === 'dark';
+  const [location, setLocation] = useState({});
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+
+  await getLocation(setLocation);
 
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -154,25 +135,15 @@ const App = () => {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        <View>
+          <Text>Your location is:</Text>
+            <Text>Latitude: {location?.coords?.latitude || ''}</Text>
+            <Text>Longitude: {location?.coords?.latitude || ''}</Text>
+          <Pressable onPress={async () => {
+            await getLocation(setLocation);
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+            <Text>Get Location</Text>;
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
