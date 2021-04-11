@@ -11,6 +11,9 @@
  import React, { useEffect } from 'react';
  import Geolocation from 'react-native-geolocation-service';
  import {
+   Alert,
+   Linking,
+   Platform,
    SafeAreaView,
    ScrollView,
    StatusBar,
@@ -27,6 +30,39 @@
    LearnMoreLinks,
    ReloadInstructions,
  } from 'react-native/Libraries/NewAppScreen';
+
+ const hasLocationPermissionsIOS = async (): Promise<boolean> => {
+   const openSettings = () => {
+     Linking.openSettings().catch(() => {
+      Alert.alert('Unable to open settings');
+     });
+   }
+  const status = await Geolocation.requestAuthorization('whenInUse');
+  if (status === 'granted') {
+    return true;
+  }
+  if (status === 'denied') {
+    Alert.alert('Location Permission was denied');
+  }
+  if (status === 'disabled') {
+    Alert.alert(
+      `Turn on Location Services to allow this app to determine your location.`,
+      '',
+      [
+        { text: 'Go to Settings', onPress: openSettings },
+        { text: "Don't Use Location", onPress: () => {} },
+      ],
+    );
+  }
+  return false;
+ }
+
+ const hasLocationPermissions = async () => {
+   if (Platform.OS === 'ios') {
+     const hasPermissions = await hasLocationPermissionsIOS();
+     return hasPermissions;
+   }
+ }
 
  const Section: React.FC<{
    title: string;
